@@ -1,6 +1,7 @@
 import { categories } from "@shared/schema";
 import { CategoryCard } from "@/components/category-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AnimatedPuzzleDemo } from "@/components/animated-puzzle-demo";
 import { Puzzle } from "lucide-react";
 
 export default function Home() {
@@ -19,14 +20,15 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        <div className="mb-12 text-center">
+        <div className="mb-16 text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
             Choose Your Adventure
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground mb-10">
             Select an animal category and start solving beautiful jigsaw puzzles. 
             Perfect for relaxation and fun!
           </p>
+          <AnimatedPuzzleDemo />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
