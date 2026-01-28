@@ -8,10 +8,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Puzzle, PuzzlePiece } from "@shared/schema";
+import type { Puzzle, PuzzlePiece, PuzzleCut } from "@shared/schema";
 import { puzzleCutOptions } from "@shared/schema";
-
-type PuzzleCutConfig = { pieces: number; name: string; cols: number; rows: number };
 import Confetti from "./confetti";
 import { PuzzleSidebar } from "./puzzle-sidebar";
 import { PuzzleCutSelector } from "./puzzle-cut-selector";
@@ -53,20 +51,19 @@ function initializePieces(cols: number, rows: number): PuzzlePiece[] {
   return pieces;
 }
 
-function getDefaultCut(gridSize: number): PuzzleCutConfig {
+function getDefaultCut(gridSize: number): PuzzleCut {
   const totalPieces = gridSize * gridSize;
-  const match = puzzleCutOptions.find(c => c.pieces === totalPieces);
-  if (match) return { ...match };
+  const exactMatch = puzzleCutOptions.find(c => c.pieces === totalPieces);
+  if (exactMatch) return exactMatch;
   
-  if (gridSize === 3) return { pieces: 9, name: "Classic", cols: 3, rows: 3 };
-  if (gridSize === 4) return { pieces: 16, name: "Blocks", cols: 4, rows: 4 };
-  if (gridSize === 5) return { pieces: 20, name: "Classic", cols: 5, rows: 4 };
-  
-  return { ...puzzleCutOptions[0] };
+  const closestMatch = puzzleCutOptions.reduce((prev, curr) => 
+    Math.abs(curr.pieces - totalPieces) < Math.abs(prev.pieces - totalPieces) ? curr : prev
+  );
+  return closestMatch;
 }
 
 export function PuzzleGame({ puzzle }: PuzzleGameProps) {
-  const [currentCut, setCurrentCut] = useState<PuzzleCutConfig>(() => getDefaultCut(puzzle.gridSize));
+  const [currentCut, setCurrentCut] = useState<PuzzleCut>(() => getDefaultCut(puzzle.gridSize));
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
@@ -164,7 +161,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     setSelectedPiece(null);
   };
 
-  const handleCutChange = (cut: PuzzleCutConfig) => {
+  const handleCutChange = (cut: PuzzleCut) => {
     setCurrentCut(cut);
   };
 

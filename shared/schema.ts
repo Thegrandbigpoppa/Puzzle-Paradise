@@ -55,42 +55,47 @@ export const gameStateSchema = z.object({
 
 export type GameState = z.infer<typeof gameStateSchema>;
 
-export const puzzleCutOptions = [
+export interface PuzzleCut {
+  pieces: number;
+  name: string;
+  cols: number;
+  rows: number;
+}
+
+export const puzzleCutOptions: PuzzleCut[] = [
   { pieces: 6, name: "Classic", cols: 3, rows: 2 },
+  { pieces: 9, name: "Classic", cols: 3, rows: 3 },
   { pieces: 12, name: "ZigZag", cols: 4, rows: 3 },
   { pieces: 16, name: "Blocks", cols: 4, rows: 4 },
   { pieces: 20, name: "Classic", cols: 5, rows: 4 },
-  { pieces: 20, name: "Birds", cols: 5, rows: 4 },
-  { pieces: 22, name: "Wavy", cols: 11, rows: 2 },
-  { pieces: 22, name: "Polygons", cols: 11, rows: 2 },
-  { pieces: 32, name: "Round", cols: 8, rows: 4 },
+  { pieces: 25, name: "Classic", cols: 5, rows: 5 },
+  { pieces: 30, name: "Classic", cols: 6, rows: 5 },
   { pieces: 35, name: "Jigzone", cols: 7, rows: 5 },
+  { pieces: 36, name: "Classic", cols: 6, rows: 6 },
   { pieces: 40, name: "Birds", cols: 8, rows: 5 },
-  { pieces: 41, name: "Tetris", cols: 41, rows: 1 },
-  { pieces: 44, name: "Tri-Dove", cols: 11, rows: 4 },
+  { pieces: 42, name: "Classic", cols: 7, rows: 6 },
   { pieces: 48, name: "Classic", cols: 8, rows: 6 },
-  { pieces: 48, name: "Euros", cols: 8, rows: 6 },
-  { pieces: 48, name: "USA", cols: 8, rows: 6 },
-  { pieces: 50, name: "Circles", cols: 10, rows: 5 },
-  { pieces: 50, name: "Tri-Clip", cols: 10, rows: 5 },
-  { pieces: 51, name: "Crazy", cols: 17, rows: 3 },
-  { pieces: 55, name: "Sixstar", cols: 11, rows: 5 },
-  { pieces: 62, name: "Tetris", cols: 31, rows: 2 },
-  { pieces: 67, name: "Classic", cols: 67, rows: 1 },
+  { pieces: 49, name: "Classic", cols: 7, rows: 7 },
+  { pieces: 56, name: "Classic", cols: 8, rows: 7 },
+  { pieces: 63, name: "Classic", cols: 9, rows: 7 },
+  { pieces: 64, name: "Blocks", cols: 8, rows: 8 },
   { pieces: 70, name: "Bulbs", cols: 10, rows: 7 },
-  { pieces: 79, name: "Stars", cols: 79, rows: 1 },
-  { pieces: 79, name: "Bricks", cols: 79, rows: 1 },
+  { pieces: 72, name: "Classic", cols: 9, rows: 8 },
   { pieces: 80, name: "Classic", cols: 10, rows: 8 },
-  { pieces: 87, name: "Crazy", cols: 29, rows: 3 },
-  { pieces: 91, name: "Lizards", cols: 13, rows: 7 },
+  { pieces: 81, name: "Classic", cols: 9, rows: 9 },
+  { pieces: 90, name: "Classic", cols: 10, rows: 9 },
   { pieces: 96, name: "Triangles", cols: 12, rows: 8 },
   { pieces: 100, name: "Classic", cols: 10, rows: 10 },
   { pieces: 108, name: "Swirls", cols: 12, rows: 9 },
+  { pieces: 120, name: "Classic", cols: 12, rows: 10 },
+  { pieces: 130, name: "Classic", cols: 13, rows: 10 },
+  { pieces: 144, name: "Classic", cols: 12, rows: 12 },
   { pieces: 154, name: "Classic", cols: 14, rows: 11 },
-  { pieces: 184, name: "Crazy", cols: 23, rows: 8 },
+  { pieces: 168, name: "Classic", cols: 14, rows: 12 },
+  { pieces: 180, name: "Classic", cols: 15, rows: 12 },
+  { pieces: 196, name: "Classic", cols: 14, rows: 14 },
+  { pieces: 210, name: "Classic", cols: 15, rows: 14 },
+  { pieces: 224, name: "Classic", cols: 16, rows: 14 },
   { pieces: 240, name: "Classic", cols: 16, rows: 15 },
-  { pieces: 240, name: "Squares", cols: 16, rows: 15 },
   { pieces: 247, name: "Triangles", cols: 19, rows: 13 },
-] as const;
-
-export type PuzzleCut = typeof puzzleCutOptions[number];
+];

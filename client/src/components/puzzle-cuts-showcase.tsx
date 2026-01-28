@@ -7,7 +7,7 @@ const featuredCuts = [
   puzzleCutOptions.find(c => c.pieces === 6)!,
   puzzleCutOptions.find(c => c.pieces === 16)!,
   puzzleCutOptions.find(c => c.pieces === 35)!,
-  puzzleCutOptions.find(c => c.pieces === 67)!,
+  puzzleCutOptions.find(c => c.pieces === 64)!,
   puzzleCutOptions.find(c => c.pieces === 100)!,
   puzzleCutOptions.find(c => c.pieces === 247)!,
 ];

@@ -10,12 +10,12 @@ import {
   Image as ImageIcon,
   ChevronRight
 } from "lucide-react";
-type PuzzleCutConfig = { pieces: number; name: string; cols: number; rows: number };
+import type { PuzzleCut } from "@shared/schema";
 
 interface PuzzleSidebarProps {
   puzzleName: string;
   puzzleImage: string;
-  currentCut: PuzzleCutConfig;
+  currentCut: PuzzleCut;
   elapsedTime: string;
   onChangeCut: () => void;
   onShuffle: () => void;

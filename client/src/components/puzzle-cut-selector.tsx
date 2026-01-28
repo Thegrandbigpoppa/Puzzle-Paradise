@@ -1,14 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { puzzleCutOptions } from "@shared/schema";
+import { puzzleCutOptions, type PuzzleCut } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-type PuzzleCutConfig = { pieces: number; name: string; cols: number; rows: number };
 
 interface PuzzleCutSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentCut: PuzzleCutConfig;
-  onSelectCut: (cut: PuzzleCutConfig) => void;
+  currentCut: PuzzleCut;
+  onSelectCut: (cut: PuzzleCut) => void;
 }
 
 export function PuzzleCutSelector({ 
@@ -22,9 +20,9 @@ export function PuzzleCutSelector({
                   cut.pieces <= 50 ? "Medium (26-50)" : 
                   cut.pieces <= 100 ? "Hard (51-100)" : "Expert (100+)";
     if (!acc[group]) acc[group] = [];
-    acc[group].push({ ...cut });
+    acc[group].push(cut);
     return acc;
-  }, {} as Record<string, PuzzleCutConfig[]>);
+  }, {} as Record<string, PuzzleCut[]>);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
