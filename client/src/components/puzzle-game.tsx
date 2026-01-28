@@ -481,14 +481,14 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
           </DndContext>
 
           {showReference && (
-            <Card className="overflow-hidden p-0 lg:w-64 flex-shrink-0">
+            <Card className="overflow-hidden lg:w-64 flex-shrink-0 p-3">
               <img
                 src={puzzle.imageUrl}
                 alt="Reference"
-                className="w-full object-cover"
+                className="w-full object-cover rounded-md"
                 style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
               />
-              <div className="p-3 text-center text-sm text-muted-foreground">
+              <div className="pt-2 text-center text-sm text-muted-foreground">
                 Reference Image
               </div>
             </Card>
