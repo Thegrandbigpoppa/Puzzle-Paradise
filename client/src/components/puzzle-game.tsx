@@ -13,6 +13,19 @@ import { puzzleCutOptions } from "@shared/schema";
 import Confetti from "./confetti";
 import { PuzzleSidebar } from "./puzzle-sidebar";
 import { PuzzleCutSelector } from "./puzzle-cut-selector";
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 interface PuzzleGameProps {
   puzzle: Puzzle;
@@ -62,10 +75,101 @@ function getDefaultCut(gridSize: number): PuzzleCut {
   return closestMatch;
 }
 
+interface DraggablePieceProps {
+  piece: PuzzlePiece;
+  imageUrl: string;
+  cols: number;
+  rows: number;
+  isCorrect: boolean;
+  isComplete: boolean;
+  isDragging: boolean;
+}
+
+function DraggablePiece({ piece, imageUrl, cols, rows, isCorrect, isComplete, isDragging }: DraggablePieceProps) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `piece-${piece.id}`,
+    disabled: isComplete,
+  });
+
+  const style: React.CSSProperties = {
+    backgroundImage: `url(${imageUrl})`,
+    backgroundSize: `${cols * 100}% ${rows * 100}%`,
+    backgroundPosition: `${cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50}% ${rows > 1 ? (piece.correctRow / (rows - 1)) * 100 : 50}%`,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isComplete ? 'default' : 'grab',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`relative h-full w-full overflow-hidden border border-border/30 transition-opacity duration-200 touch-none ${
+        isCorrect && !isComplete ? "ring-2 ring-green-500/50" : ""
+      }`}
+      style={style}
+      data-testid={`puzzle-piece-${piece.id}`}
+    />
+  );
+}
+
+interface DroppableCellProps {
+  row: number;
+  col: number;
+  children: React.ReactNode;
+  isOver: boolean;
+}
+
+function DroppableCell({ row, col, children, isOver }: DroppableCellProps) {
+  const { setNodeRef, isOver: cellIsOver } = useDroppable({
+    id: `cell-${row}-${col}`,
+    data: { row, col },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative transition-all duration-150 ${
+        (isOver || cellIsOver) ? "ring-2 ring-primary ring-inset bg-primary/10" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface DragOverlayPieceProps {
+  piece: PuzzlePiece;
+  imageUrl: string;
+  cols: number;
+  rows: number;
+  containerWidth: number;
+  containerHeight: number;
+}
+
+function DragOverlayPiece({ piece, imageUrl, cols, rows, containerWidth, containerHeight }: DragOverlayPieceProps) {
+  const pieceWidth = containerWidth > 0 ? containerWidth / cols : 80;
+  const pieceHeight = containerHeight > 0 ? containerHeight / rows : 80;
+
+  return (
+    <div
+      className="overflow-hidden border-2 border-primary shadow-2xl ring-4 ring-primary/30"
+      style={{
+        width: pieceWidth,
+        height: pieceHeight,
+        backgroundImage: `url(${imageUrl})`,
+        backgroundSize: `${cols * 100}% ${rows * 100}%`,
+        backgroundPosition: `${cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50}% ${rows > 1 ? (piece.correctRow / (rows - 1)) * 100 : 50}%`,
+        transform: 'scale(1.05)',
+      }}
+    />
+  );
+}
+
 export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [currentCut, setCurrentCut] = useState<PuzzleCut>(() => getDefaultCut(puzzle.gridSize));
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
-  const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -73,7 +177,23 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [showReference, setShowReference] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [cutSelectorOpen, setCutSelectorOpen] = useState(false);
+  const [activePieceId, setActivePieceId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    })
+  );
 
   useEffect(() => {
     const img = new window.Image();
@@ -86,7 +206,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     setMoves(0);
     setStartTime(Date.now());
     setIsComplete(false);
-    setSelectedPiece(null);
+    setActivePieceId(null);
   }, [puzzle, currentCut]);
 
   useEffect(() => {
@@ -99,6 +219,21 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     return () => clearInterval(interval);
   }, [startTime, isComplete]);
 
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        setContainerSize({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight,
+        });
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
   const checkCompletion = useCallback((updatedPieces: PuzzlePiece[]) => {
     const allCorrect = updatedPieces.every(
       p => p.currentRow === p.correctRow && p.currentCol === p.correctCol
@@ -108,37 +243,67 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     }
   }, []);
 
-  const handlePieceClick = (pieceId: number) => {
-    if (isComplete) return;
+  const handleDragStart = (event: DragStartEvent) => {
+    const pieceId = parseInt(String(event.active.id).replace('piece-', ''));
+    setActivePieceId(pieceId);
+  };
 
-    if (selectedPiece === null) {
-      setSelectedPiece(pieceId);
-    } else if (selectedPiece === pieceId) {
-      setSelectedPiece(null);
-    } else {
-      const piece1 = pieces.find(p => p.id === selectedPiece)!;
-      const piece2 = pieces.find(p => p.id === pieceId)!;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActivePieceId(null);
+
+    if (!over) return;
+
+    const draggedPieceId = parseInt(String(active.id).replace('piece-', ''));
+    const overId = String(over.id);
+    
+    setPieces(prevPieces => {
+      let targetRow: number;
+      let targetCol: number;
       
-      const updatedPieces = pieces.map(p => {
-        if (p.id === selectedPiece) {
-          return { ...p, currentRow: piece2.currentRow, currentCol: piece2.currentCol };
+      if (overId.startsWith('cell-')) {
+        const [, targetRowStr, targetColStr] = overId.split('-');
+        targetRow = parseInt(targetRowStr);
+        targetCol = parseInt(targetColStr);
+      } else if (overId.startsWith('piece-')) {
+        const targetPieceId = parseInt(overId.replace('piece-', ''));
+        const targetPiece = prevPieces.find(p => p.id === targetPieceId);
+        if (!targetPiece) return prevPieces;
+        targetRow = targetPiece.currentRow;
+        targetCol = targetPiece.currentCol;
+      } else {
+        return prevPieces;
+      }
+
+      const draggedPiece = prevPieces.find(p => p.id === draggedPieceId);
+      if (!draggedPiece) return prevPieces;
+
+      if (draggedPiece.currentRow === targetRow && draggedPiece.currentCol === targetCol) {
+        return prevPieces;
+      }
+
+      const targetPiece = prevPieces.find(p => p.currentRow === targetRow && p.currentCol === targetCol);
+      if (!targetPiece) return prevPieces;
+
+      const updatedPieces = prevPieces.map(p => {
+        if (p.id === draggedPieceId) {
+          return { ...p, currentRow: targetRow, currentCol: targetCol };
         }
-        if (p.id === pieceId) {
-          return { ...p, currentRow: piece1.currentRow, currentCol: piece1.currentCol };
+        if (p.id === targetPiece.id) {
+          return { ...p, currentRow: draggedPiece.currentRow, currentCol: draggedPiece.currentCol };
         }
         return p;
       });
       
-      setPieces(updatedPieces);
       setMoves(m => m + 1);
-      setSelectedPiece(null);
       checkCompletion(updatedPieces);
-    }
+      return updatedPieces;
+    });
   };
 
   const handleShuffle = () => {
     setPieces(initializePieces(currentCut.cols, currentCut.rows));
-    setSelectedPiece(null);
+    setActivePieceId(null);
     setMoves(m => m + 1);
   };
 
@@ -158,7 +323,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     setStartTime(Date.now());
     setElapsedTime(0);
     setIsComplete(false);
-    setSelectedPiece(null);
+    setActivePieceId(null);
   };
 
   const handleCutChange = (cut: PuzzleCut) => {
@@ -179,6 +344,8 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const getPieceAtPosition = (row: number, col: number) => {
     return pieces.find(p => p.currentRow === row && p.currentCol === col);
   };
+
+  const activePiece = activePieceId !== null ? pieces.find(p => p.id === activePieceId) : null;
 
   if (!imageLoaded) {
     return (
@@ -249,49 +416,69 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
         )}
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <Card
-            ref={containerRef}
-            className="relative w-full max-w-2xl flex-shrink-0 overflow-hidden p-0"
-            style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
-            data-testid="puzzle-grid"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            <div
-              className="grid h-full w-full"
-              style={{
-                gridTemplateColumns: `repeat(${currentCut.cols}, 1fr)`,
-                gridTemplateRows: `repeat(${currentCut.rows}, 1fr)`,
-              }}
+            <Card
+              ref={containerRef}
+              className="relative w-full max-w-2xl flex-shrink-0 overflow-hidden p-0"
+              style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
+              data-testid="puzzle-grid"
             >
-              {Array.from({ length: currentCut.rows }).map((_, row) =>
-                Array.from({ length: currentCut.cols }).map((_, col) => {
-                  const piece = getPieceAtPosition(row, col);
-                  if (!piece) return null;
-                  
-                  const isSelected = selectedPiece === piece.id;
-                  const isCorrect = piece.currentRow === piece.correctRow && piece.currentCol === piece.correctCol;
-                  
-                  return (
-                    <button
-                      key={`${row}-${col}`}
-                      onClick={() => handlePieceClick(piece.id)}
-                      disabled={isComplete}
-                      className={`relative overflow-hidden border border-border/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 ${
-                        isSelected
-                          ? "ring-4 ring-primary ring-offset-2 z-10 scale-105"
-                          : "hover:brightness-110"
-                      } ${isCorrect && !isComplete ? "ring-2 ring-green-500/50" : ""}`}
-                      style={{
-                        backgroundImage: `url(${puzzle.imageUrl})`,
-                        backgroundSize: `${currentCut.cols * 100}% ${currentCut.rows * 100}%`,
-                        backgroundPosition: `${currentCut.cols > 1 ? (piece.correctCol / (currentCut.cols - 1)) * 100 : 50}% ${currentCut.rows > 1 ? (piece.correctRow / (currentCut.rows - 1)) * 100 : 50}%`,
-                      }}
-                      data-testid={`puzzle-piece-${piece.id}`}
-                    />
-                  );
-                })
+              <div
+                className="grid h-full w-full"
+                style={{
+                  gridTemplateColumns: `repeat(${currentCut.cols}, 1fr)`,
+                  gridTemplateRows: `repeat(${currentCut.rows}, 1fr)`,
+                }}
+              >
+                {Array.from({ length: currentCut.rows }).map((_, row) =>
+                  Array.from({ length: currentCut.cols }).map((_, col) => {
+                    const piece = getPieceAtPosition(row, col);
+                    if (!piece) return null;
+                    
+                    const isCorrect = piece.currentRow === piece.correctRow && piece.currentCol === piece.correctCol;
+                    const isDragging = activePieceId === piece.id;
+                    
+                    return (
+                      <DroppableCell
+                        key={`${row}-${col}`}
+                        row={row}
+                        col={col}
+                        isOver={false}
+                      >
+                        <DraggablePiece
+                          piece={piece}
+                          imageUrl={puzzle.imageUrl}
+                          cols={currentCut.cols}
+                          rows={currentCut.rows}
+                          isCorrect={isCorrect}
+                          isComplete={isComplete}
+                          isDragging={isDragging}
+                        />
+                      </DroppableCell>
+                    );
+                  })
+                )}
+              </div>
+            </Card>
+
+            <DragOverlay dropAnimation={null}>
+              {activePiece && (
+                <DragOverlayPiece
+                  piece={activePiece}
+                  imageUrl={puzzle.imageUrl}
+                  cols={currentCut.cols}
+                  rows={currentCut.rows}
+                  containerWidth={containerSize.width}
+                  containerHeight={containerSize.height}
+                />
               )}
-            </div>
-          </Card>
+            </DragOverlay>
+          </DndContext>
 
           {showReference && (
             <Card className="overflow-hidden p-0 lg:w-64 flex-shrink-0">

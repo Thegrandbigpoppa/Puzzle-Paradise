@@ -38,11 +38,16 @@ MVP complete with:
 - `GET /api/puzzles/:id` - Returns a single puzzle by ID
 
 ## Puzzle Mechanics
-1. Puzzle pieces are displayed in a grid
-2. Click a piece to select it (highlighted with purple ring)
-3. Click another piece to swap their positions
-4. Pieces in correct position show green glow
-5. Complete when all pieces are in correct positions
+1. Puzzle pieces are displayed in a grid with configurable cuts (6-247 pieces)
+2. Drag a piece onto another piece to swap their positions
+3. Pieces in correct position show green glow
+4. Complete when all pieces are in correct positions
+
+### Drag and Drop
+- Uses @dnd-kit/core with closestCenter collision detection
+- PointerSensor: 5px distance activation for mouse
+- TouchSensor: 100ms delay, 5px tolerance for mobile
+- Visual feedback: dragged piece shows at 105% scale with shadow
 
 ## Design System
 - Primary color: Purple (262°)
@@ -52,4 +57,7 @@ MVP complete with:
 - Dark mode support
 
 ## Recent Changes
+- January 2026: Added drag-and-drop puzzle interaction (replaces click-to-swap)
+- January 2026: Added puzzle cut selector with 35 options from 6-247 pieces
+- January 2026: Added sidebar with controls (Change Cut, Shuffle, Auto Solve, Start Over, Reference)
 - January 2026: Initial MVP with all core features
