@@ -2,6 +2,7 @@ import { categories } from "@shared/schema";
 import { CategoryCard } from "@/components/category-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AnimatedPuzzleDemo } from "@/components/animated-puzzle-demo";
+import { PuzzleCutsShowcase } from "@/components/puzzle-cuts-showcase";
 import { Puzzle } from "lucide-react";
 
 export default function Home() {
@@ -37,35 +38,38 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <h2 className="mb-4 text-2xl font-semibold">Why Play Puzzle Pals?</h2>
-          <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
-            <div className="rounded-lg bg-card p-6">
-              <div className="mb-3 text-3xl">
-                <Puzzle className="mx-auto h-8 w-8 text-primary" />
+        <div className="mt-16">
+          <h2 className="mb-6 text-2xl font-semibold text-center">Why Play Puzzle Pals?</h2>
+          <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
+            <PuzzleCutsShowcase />
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="rounded-lg bg-card p-5">
+                <div className="mb-3">
+                  <Puzzle className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="mb-1.5 font-semibold">Multiple Difficulties</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose from easy to hard puzzles based on your skill level
+                </p>
               </div>
-              <h3 className="mb-2 font-semibold">Multiple Difficulties</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose from easy to hard puzzles based on your skill level
-              </p>
-            </div>
-            <div className="rounded-lg bg-card p-6">
-              <div className="mb-3 text-3xl">
-                <Puzzle className="mx-auto h-8 w-8 text-accent" />
+              <div className="rounded-lg bg-card p-5">
+                <div className="mb-3">
+                  <Puzzle className="h-7 w-7 text-accent" />
+                </div>
+                <h3 className="mb-1.5 font-semibold">Beautiful Images</h3>
+                <p className="text-sm text-muted-foreground">
+                  High-quality animal photos that are a joy to piece together
+                </p>
               </div>
-              <h3 className="mb-2 font-semibold">Beautiful Images</h3>
-              <p className="text-sm text-muted-foreground">
-                High-quality animal photos that are a joy to piece together
-              </p>
-            </div>
-            <div className="rounded-lg bg-card p-6">
-              <div className="mb-3 text-3xl">
-                <Puzzle className="mx-auto h-8 w-8 text-chart-3" />
+              <div className="rounded-lg bg-card p-5 sm:col-span-2">
+                <div className="mb-3">
+                  <Puzzle className="h-7 w-7 text-chart-3" />
+                </div>
+                <h3 className="mb-1.5 font-semibold">Track Progress</h3>
+                <p className="text-sm text-muted-foreground">
+                  See your time and moves as you solve each puzzle
+                </p>
               </div>
-              <h3 className="mb-2 font-semibold">Track Progress</h3>
-              <p className="text-sm text-muted-foreground">
-                See your time and moves as you solve each puzzle
-              </p>
             </div>
           </div>
         </div>
