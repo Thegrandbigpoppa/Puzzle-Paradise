@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { 
   Scissors, 
   Shuffle, 
@@ -89,13 +90,23 @@ export function PuzzleSidebar({
           onClick={onToggleReference}
           testId="button-toggle-reference-sidebar"
         />
-        <SidebarButton 
-          icon={<Lightbulb className="h-4 w-4" />}
-          label={showHint ? "Hide Hint" : "Show Hint"}
-          onClick={onToggleHint}
-          highlight={showHint}
-          testId="button-toggle-hint"
-        />
+      </div>
+
+      <Separator />
+
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Show Hint</span>
+          </div>
+          <Switch
+            checked={showHint}
+            onCheckedChange={onToggleHint}
+            className="data-[state=checked]:bg-green-500"
+            data-testid="toggle-hint"
+          />
+        </div>
       </div>
 
       <Separator />
