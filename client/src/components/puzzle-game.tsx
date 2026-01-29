@@ -175,6 +175,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [showReference, setShowReference] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [cutSelectorOpen, setCutSelectorOpen] = useState(false);
   const [activePieceId, setActivePieceId] = useState<number | null>(null);
@@ -296,6 +297,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
       });
       
       setMoves(m => m + 1);
+      setShowHint(false);
       checkCompletion(updatedPieces);
       return updatedPieces;
     });
@@ -380,6 +382,8 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
         onStartOver={handleStartOver}
         onToggleReference={() => setShowReference(!showReference)}
         showReference={showReference}
+        onShowHint={() => setShowHint(true)}
+        showHint={showHint}
       />
 
       <div className="flex-1 space-y-4">
@@ -428,8 +432,16 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
               style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
               data-testid="puzzle-grid"
             >
+              {showHint && (
+                <img
+                  src={puzzle.imageUrl}
+                  alt="Hint"
+                  className="absolute inset-0 h-full w-full object-cover opacity-40 pointer-events-none"
+                  data-testid="hint-overlay"
+                />
+              )}
               <div
-                className="grid h-full w-full"
+                className="relative grid h-full w-full"
                 style={{
                   gridTemplateColumns: `repeat(${currentCut.cols}, 1fr)`,
                   gridTemplateRows: `repeat(${currentCut.rows}, 1fr)`,

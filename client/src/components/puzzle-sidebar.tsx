@@ -8,6 +8,7 @@ import {
   RotateCcw, 
   Clock,
   Image as ImageIcon,
+  Lightbulb,
   ChevronRight
 } from "lucide-react";
 import type { PuzzleCut } from "@shared/schema";
@@ -23,6 +24,8 @@ interface PuzzleSidebarProps {
   onStartOver: () => void;
   onToggleReference: () => void;
   showReference: boolean;
+  onShowHint: () => void;
+  showHint: boolean;
 }
 
 export function PuzzleSidebar({
@@ -36,6 +39,8 @@ export function PuzzleSidebar({
   onStartOver,
   onToggleReference,
   showReference,
+  onShowHint,
+  showHint,
 }: PuzzleSidebarProps) {
   return (
     <Card className="w-full lg:w-72 flex-shrink-0 p-0 overflow-hidden">
@@ -83,6 +88,13 @@ export function PuzzleSidebar({
           label={showReference ? "Hide Reference" : "Show Reference"}
           onClick={onToggleReference}
           testId="button-toggle-reference-sidebar"
+        />
+        <SidebarButton 
+          icon={<Lightbulb className="h-4 w-4" />}
+          label={showHint ? "Hint Active" : "Show Hint"}
+          onClick={onShowHint}
+          highlight={showHint}
+          testId="button-show-hint"
         />
       </div>
 
