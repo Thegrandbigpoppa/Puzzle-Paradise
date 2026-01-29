@@ -118,7 +118,7 @@ function JigsawPiece({
   const totalWidth = pieceWidth + extraW * 2;
   const totalHeight = pieceHeight + extraH * 2;
   
-  const clipId = `clip-${piece.id}`;
+  const clipId = `tray-clip-${piece.id}`;
   const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
   
   const bgPosX = cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50;
@@ -188,8 +188,6 @@ function BoardSlot({ row, col, pieceWidth, pieceHeight, edges, hasPiece, isCorre
   const tabSize = 0.2;
   const extraW = pieceWidth * tabSize;
   const extraH = pieceHeight * tabSize;
-  const totalWidth = pieceWidth + extraW * 2;
-  const totalHeight = pieceHeight + extraH * 2;
   
   const { setNodeRef } = useDroppable({
     id: `slot-${row}-${col}`,
@@ -201,23 +199,11 @@ function BoardSlot({ row, col, pieceWidth, pieceHeight, edges, hasPiece, isCorre
       ref={setNodeRef}
       className="relative"
       style={{
-        width: totalWidth,
-        height: totalHeight,
-        marginLeft: col === 0 ? 0 : -extraW,
-        marginTop: row === 0 ? 0 : -extraH,
+        width: pieceWidth,
+        height: pieceHeight,
       }}
     >
-      <div 
-        className="absolute"
-        style={{
-          left: extraW,
-          top: extraH,
-          width: pieceWidth,
-          height: pieceHeight,
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
@@ -239,15 +225,15 @@ function PlacedPiece({ piece, imageUrl, cols, rows, edges, pieceWidth, pieceHeig
   const totalWidth = pieceWidth + extraW * 2;
   const totalHeight = pieceHeight + extraH * 2;
   
-  const clipId = `placed-clip-${piece.id}-${Date.now()}`;
+  const clipId = `board-clip-${piece.id}`;
   const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
 
   return (
     <div
       className="absolute pointer-events-none"
       style={{
-        left: -extraW * 2,
-        top: -extraH * 2,
+        left: -extraW,
+        top: -extraH,
         width: totalWidth,
         height: totalHeight,
       }}
