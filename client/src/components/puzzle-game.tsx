@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -26,6 +26,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { generateAllPieceEdges, generatePiecePath, type PieceEdges } from "@/lib/puzzle-piece-shapes";
 
 interface PuzzleGameProps {
   puzzle: Puzzle;
@@ -40,25 +41,31 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function initializePieces(cols: number, rows: number): PuzzlePiece[] {
-  const pieces: PuzzlePiece[] = [];
+interface ExtendedPuzzlePiece extends PuzzlePiece {
+  isInTray: boolean;
+  trayIndex: number;
+}
+
+function initializePieces(cols: number, rows: number): ExtendedPuzzlePiece[] {
+  const pieces: ExtendedPuzzlePiece[] = [];
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       pieces.push({
         id: row * cols + col,
         correctRow: row,
         correctCol: col,
-        currentRow: row,
-        currentCol: col,
+        currentRow: -1,
+        currentCol: -1,
         isPlaced: false,
+        isInTray: true,
+        trayIndex: row * cols + col,
       });
     }
   }
   
-  const shuffled = shuffleArray(pieces.map(p => ({ row: p.currentRow, col: p.currentCol })));
+  const shuffledIndices = shuffleArray(pieces.map((_, i) => i));
   pieces.forEach((piece, index) => {
-    piece.currentRow = shuffled[index].row;
-    piece.currentCol = shuffled[index].col;
+    piece.trayIndex = shuffledIndices[index];
   });
   
   return pieces;
@@ -75,29 +82,54 @@ function getDefaultCut(gridSize: number): PuzzleCut {
   return closestMatch;
 }
 
-interface DraggablePieceProps {
-  piece: PuzzlePiece;
+interface JigsawPieceProps {
+  piece: ExtendedPuzzlePiece;
   imageUrl: string;
   cols: number;
   rows: number;
-  isCorrect: boolean;
+  edges: PieceEdges;
+  pieceWidth: number;
+  pieceHeight: number;
   isComplete: boolean;
   isDragging: boolean;
+  scale?: number;
 }
 
-function DraggablePiece({ piece, imageUrl, cols, rows, isCorrect, isComplete, isDragging }: DraggablePieceProps) {
+function JigsawPiece({ 
+  piece, 
+  imageUrl, 
+  cols, 
+  rows, 
+  edges, 
+  pieceWidth, 
+  pieceHeight, 
+  isComplete, 
+  isDragging,
+  scale = 1
+}: JigsawPieceProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `piece-${piece.id}`,
-    disabled: isComplete,
+    disabled: isComplete || piece.isPlaced,
   });
 
+  const tabSize = 0.2;
+  const extraW = pieceWidth * tabSize;
+  const extraH = pieceHeight * tabSize;
+  const totalWidth = pieceWidth + extraW * 2;
+  const totalHeight = pieceHeight + extraH * 2;
+  
+  const clipId = `clip-${piece.id}`;
+  const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
+  
+  const bgPosX = cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50;
+  const bgPosY = rows > 1 ? (piece.correctRow / (rows - 1)) * 100 : 50;
+
   const style: React.CSSProperties = {
-    backgroundImage: `url(${imageUrl})`,
-    backgroundSize: `${cols * 100}% ${rows * 100}%`,
-    backgroundPosition: `${cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50}% ${rows > 1 ? (piece.correctRow / (rows - 1)) * 100 : 50}%`,
+    width: totalWidth * scale,
+    height: totalHeight * scale,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
-    cursor: isComplete ? 'default' : 'grab',
+    cursor: isComplete || piece.isPlaced ? 'default' : 'grab',
   };
 
   return (
@@ -105,71 +137,255 @@ function DraggablePiece({ piece, imageUrl, cols, rows, isCorrect, isComplete, is
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`relative h-full w-full overflow-hidden border border-border/30 transition-opacity duration-200 touch-none ${
-        isCorrect && !isComplete ? "ring-2 ring-green-500/50" : ""
-      }`}
+      className="touch-none flex-shrink-0"
       style={style}
       data-testid={`puzzle-piece-${piece.id}`}
-    />
-  );
-}
-
-interface DroppableCellProps {
-  row: number;
-  col: number;
-  children: React.ReactNode;
-  isOver: boolean;
-}
-
-function DroppableCell({ row, col, children, isOver }: DroppableCellProps) {
-  const { setNodeRef, isOver: cellIsOver } = useDroppable({
-    id: `cell-${row}-${col}`,
-    data: { row, col },
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`relative transition-all duration-150 ${
-        (isOver || cellIsOver) ? "ring-2 ring-primary ring-inset bg-primary/10" : ""
-      }`}
     >
-      {children}
+      <svg 
+        width={totalWidth * scale} 
+        height={totalHeight * scale} 
+        viewBox={`${-extraW} ${-extraH} ${totalWidth} ${totalHeight}`}
+        className="overflow-visible"
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <path d={path} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <image
+            href={imageUrl}
+            x={-piece.correctCol * pieceWidth}
+            y={-piece.correctRow * pieceHeight}
+            width={cols * pieceWidth}
+            height={rows * pieceHeight}
+            preserveAspectRatio="none"
+          />
+        </g>
+        <path 
+          d={path} 
+          fill="none" 
+          stroke="rgba(0,0,0,0.3)" 
+          strokeWidth={1}
+        />
+      </svg>
     </div>
   );
 }
 
-interface DragOverlayPieceProps {
-  piece: PuzzlePiece;
-  imageUrl: string;
-  cols: number;
-  rows: number;
-  containerWidth: number;
-  containerHeight: number;
+interface BoardSlotProps {
+  row: number;
+  col: number;
+  pieceWidth: number;
+  pieceHeight: number;
+  edges: PieceEdges;
+  hasPiece: boolean;
+  isCorrectSlot: boolean;
+  children?: React.ReactNode;
 }
 
-function DragOverlayPiece({ piece, imageUrl, cols, rows, containerWidth, containerHeight }: DragOverlayPieceProps) {
-  const pieceWidth = containerWidth > 0 ? containerWidth / cols : 80;
-  const pieceHeight = containerHeight > 0 ? containerHeight / rows : 80;
+function BoardSlot({ row, col, pieceWidth, pieceHeight, edges, hasPiece, isCorrectSlot, children }: BoardSlotProps) {
+  const tabSize = 0.2;
+  const extraW = pieceWidth * tabSize;
+  const extraH = pieceHeight * tabSize;
+  const totalWidth = pieceWidth + extraW * 2;
+  const totalHeight = pieceHeight + extraH * 2;
+  
+  const { setNodeRef, isOver } = useDroppable({
+    id: `slot-${row}-${col}`,
+    data: { row, col },
+  });
+  
+  const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
+  
+  const getFillColor = () => {
+    if (!isOver) return "rgba(0,0,0,0.05)";
+    if (isCorrectSlot) return "rgba(34, 197, 94, 0.3)";
+    return "rgba(239, 68, 68, 0.2)";
+  };
+  
+  const getStrokeColor = () => {
+    if (!isOver) return "rgba(0,0,0,0.15)";
+    if (isCorrectSlot) return "rgba(34, 197, 94, 0.8)";
+    return "rgba(239, 68, 68, 0.5)";
+  };
 
   return (
     <div
-      className="overflow-hidden border-2 border-primary shadow-2xl ring-4 ring-primary/30"
+      ref={setNodeRef}
+      className="relative"
       style={{
-        width: pieceWidth,
-        height: pieceHeight,
-        backgroundImage: `url(${imageUrl})`,
-        backgroundSize: `${cols * 100}% ${rows * 100}%`,
-        backgroundPosition: `${cols > 1 ? (piece.correctCol / (cols - 1)) * 100 : 50}% ${rows > 1 ? (piece.correctRow / (rows - 1)) * 100 : 50}%`,
+        width: totalWidth,
+        height: totalHeight,
+        marginLeft: col === 0 ? 0 : -extraW,
+        marginTop: row === 0 ? 0 : -extraH,
+      }}
+    >
+      {!hasPiece && (
+        <svg 
+          className="absolute pointer-events-none"
+          style={{
+            left: 0,
+            top: 0,
+            width: totalWidth,
+            height: totalHeight,
+          }}
+          viewBox={`${-extraW} ${-extraH} ${totalWidth} ${totalHeight}`}
+        >
+          <path 
+            d={path} 
+            fill={getFillColor()} 
+            stroke={getStrokeColor()} 
+            strokeWidth={isOver && isCorrectSlot ? 2 : 1}
+            strokeDasharray={isOver ? "none" : "4 2"}
+          />
+        </svg>
+      )}
+      <div 
+        className="absolute"
+        style={{
+          left: extraW,
+          top: extraH,
+          width: pieceWidth,
+          height: pieceHeight,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+interface PlacedPieceProps {
+  piece: ExtendedPuzzlePiece;
+  imageUrl: string;
+  cols: number;
+  rows: number;
+  edges: PieceEdges;
+  pieceWidth: number;
+  pieceHeight: number;
+}
+
+function PlacedPiece({ piece, imageUrl, cols, rows, edges, pieceWidth, pieceHeight }: PlacedPieceProps) {
+  const tabSize = 0.2;
+  const extraW = pieceWidth * tabSize;
+  const extraH = pieceHeight * tabSize;
+  const totalWidth = pieceWidth + extraW * 2;
+  const totalHeight = pieceHeight + extraH * 2;
+  
+  const clipId = `placed-clip-${piece.id}-${Date.now()}`;
+  const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
+
+  return (
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        left: -extraW * 2,
+        top: -extraH * 2,
+        width: totalWidth,
+        height: totalHeight,
+      }}
+    >
+      <svg 
+        width={totalWidth} 
+        height={totalHeight} 
+        viewBox={`${-extraW} ${-extraH} ${totalWidth} ${totalHeight}`}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <path d={path} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <image
+            href={imageUrl}
+            x={-piece.correctCol * pieceWidth}
+            y={-piece.correctRow * pieceHeight}
+            width={cols * pieceWidth}
+            height={rows * pieceHeight}
+            preserveAspectRatio="none"
+          />
+        </g>
+        <path 
+          d={path} 
+          fill="none" 
+          stroke="rgba(0,0,0,0.2)" 
+          strokeWidth={0.5}
+        />
+      </svg>
+    </div>
+  );
+}
+
+function DragOverlayPiece({ 
+  piece, 
+  imageUrl, 
+  cols, 
+  rows, 
+  edges, 
+  pieceWidth, 
+  pieceHeight 
+}: {
+  piece: ExtendedPuzzlePiece;
+  imageUrl: string;
+  cols: number;
+  rows: number;
+  edges: PieceEdges;
+  pieceWidth: number;
+  pieceHeight: number;
+}) {
+  const tabSize = 0.2;
+  const extraW = pieceWidth * tabSize;
+  const extraH = pieceHeight * tabSize;
+  const totalWidth = pieceWidth + extraW * 2;
+  const totalHeight = pieceHeight + extraH * 2;
+  
+  const clipId = `overlay-clip-${piece.id}`;
+  const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
+
+  return (
+    <div
+      className="drop-shadow-xl"
+      style={{
+        width: totalWidth,
+        height: totalHeight,
         transform: 'scale(1.05)',
       }}
-    />
+    >
+      <svg 
+        width={totalWidth} 
+        height={totalHeight} 
+        viewBox={`${-extraW} ${-extraH} ${totalWidth} ${totalHeight}`}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <path d={path} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <image
+            href={imageUrl}
+            x={-piece.correctCol * pieceWidth}
+            y={-piece.correctRow * pieceHeight}
+            width={cols * pieceWidth}
+            height={rows * pieceHeight}
+            preserveAspectRatio="none"
+          />
+        </g>
+        <path 
+          d={path} 
+          fill="none" 
+          stroke="rgba(139, 92, 246, 0.8)" 
+          strokeWidth={2}
+        />
+      </svg>
+    </div>
   );
 }
 
 export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [currentCut, setCurrentCut] = useState<PuzzleCut>(() => getDefaultCut(puzzle.gridSize));
-  const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
+  const [pieces, setPieces] = useState<ExtendedPuzzlePiece[]>([]);
   const [moves, setMoves] = useState(0);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -180,8 +396,13 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [imageDimensions, setImageDimensions] = useState({ width: 1, height: 1 });
   const [cutSelectorOpen, setCutSelectorOpen] = useState(false);
   const [activePieceId, setActivePieceId] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [boardSize, setBoardSize] = useState({ width: 400, height: 400 });
+
+  const allEdges = useMemo(() => 
+    generateAllPieceEdges(currentCut.rows, currentCut.cols),
+    [currentCut.rows, currentCut.cols]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -226,24 +447,24 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
 
   useEffect(() => {
     const updateSize = () => {
-      if (containerRef.current) {
-        setContainerSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
+      if (boardRef.current) {
+        const rect = boardRef.current.getBoundingClientRect();
+        setBoardSize({ width: rect.width, height: rect.height });
       }
     };
     
     updateSize();
     window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
+    const timeout = setTimeout(updateSize, 100);
+    return () => {
+      window.removeEventListener('resize', updateSize);
+      clearTimeout(timeout);
+    };
+  }, [currentCut]);
 
-  const checkCompletion = useCallback((updatedPieces: PuzzlePiece[]) => {
-    const allCorrect = updatedPieces.every(
-      p => p.currentRow === p.correctRow && p.currentCol === p.correctCol
-    );
-    if (allCorrect) {
+  const checkCompletion = useCallback((updatedPieces: ExtendedPuzzlePiece[]) => {
+    const allPlaced = updatedPieces.every(p => p.isPlaced);
+    if (allPlaced) {
       setIsComplete(true);
     }
   }, []);
@@ -262,40 +483,32 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     const draggedPieceId = parseInt(String(active.id).replace('piece-', ''));
     const overId = String(over.id);
     
-    setPieces(prevPieces => {
-      let targetRow: number;
-      let targetCol: number;
-      
-      if (overId.startsWith('cell-')) {
-        const [, targetRowStr, targetColStr] = overId.split('-');
-        targetRow = parseInt(targetRowStr);
-        targetCol = parseInt(targetColStr);
-      } else if (overId.startsWith('piece-')) {
-        const targetPieceId = parseInt(overId.replace('piece-', ''));
-        const targetPiece = prevPieces.find(p => p.id === targetPieceId);
-        if (!targetPiece) return prevPieces;
-        targetRow = targetPiece.currentRow;
-        targetCol = targetPiece.currentCol;
-      } else {
-        return prevPieces;
-      }
+    if (!overId.startsWith('slot-')) return;
+    
+    const [, targetRowStr, targetColStr] = overId.split('-');
+    const targetRow = parseInt(targetRowStr);
+    const targetCol = parseInt(targetColStr);
 
+    setPieces(prevPieces => {
       const draggedPiece = prevPieces.find(p => p.id === draggedPieceId);
       if (!draggedPiece) return prevPieces;
-
-      if (draggedPiece.currentRow === targetRow && draggedPiece.currentCol === targetCol) {
+      
+      if (draggedPiece.correctRow !== targetRow || draggedPiece.correctCol !== targetCol) {
         return prevPieces;
       }
-
-      const targetPiece = prevPieces.find(p => p.currentRow === targetRow && p.currentCol === targetCol);
-      if (!targetPiece) return prevPieces;
+      
+      const slotOccupied = prevPieces.some(p => p.isPlaced && p.currentRow === targetRow && p.currentCol === targetCol);
+      if (slotOccupied) return prevPieces;
 
       const updatedPieces = prevPieces.map(p => {
         if (p.id === draggedPieceId) {
-          return { ...p, currentRow: targetRow, currentCol: targetCol };
-        }
-        if (p.id === targetPiece.id) {
-          return { ...p, currentRow: draggedPiece.currentRow, currentCol: draggedPiece.currentCol };
+          return { 
+            ...p, 
+            currentRow: targetRow, 
+            currentCol: targetCol, 
+            isPlaced: true,
+            isInTray: false,
+          };
         }
         return p;
       });
@@ -309,7 +522,6 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const handleShuffle = () => {
     setPieces(initializePieces(currentCut.cols, currentCut.rows));
     setActivePieceId(null);
-    setMoves(m => m + 1);
   };
 
   const handleAutoSolve = () => {
@@ -317,6 +529,8 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
       ...p,
       currentRow: p.correctRow,
       currentCol: p.correctCol,
+      isPlaced: true,
+      isInTray: false,
     }));
     setPieces(solvedPieces);
     setIsComplete(true);
@@ -341,31 +555,28 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const correctPieces = pieces.filter(
-    p => p.currentRow === p.correctRow && p.currentCol === p.correctCol
-  ).length;
-  const progress = pieces.length > 0 ? (correctPieces / pieces.length) * 100 : 0;
+  const placedCount = pieces.filter(p => p.isPlaced).length;
+  const progress = pieces.length > 0 ? (placedCount / pieces.length) * 100 : 0;
 
-  const getPieceAtPosition = (row: number, col: number) => {
-    return pieces.find(p => p.currentRow === row && p.currentCol === col);
-  };
-
-  const activePiece = activePieceId !== null ? pieces.find(p => p.id === activePieceId) : null;
-
-  // Calculate the actual image aspect ratio
   const imageAspectRatio = imageDimensions.width / imageDimensions.height;
   
-  // Scale canvas size based on piece count - larger puzzles get bigger canvas
-  // Base: 512px for small puzzles, up to 768px for large ones
   const getMaxWidth = () => {
-    const pieces = currentCut.pieces;
-    if (pieces <= 25) return 512;
-    if (pieces <= 50) return 576;
-    if (pieces <= 100) return 640;
-    if (pieces <= 150) return 704;
-    return 768; // max-w-3xl equivalent
+    const pieceCount = currentCut.pieces;
+    if (pieceCount <= 25) return 400;
+    if (pieceCount <= 50) return 450;
+    if (pieceCount <= 100) return 500;
+    if (pieceCount <= 150) return 550;
+    return 600;
   };
-  const maxCanvasWidth = getMaxWidth();
+  const maxBoardWidth = getMaxWidth();
+
+  const pieceWidth = boardSize.width / currentCut.cols;
+  const pieceHeight = boardSize.height / currentCut.rows;
+  
+  const trayPieceScale = Math.min(0.8, 60 / Math.max(pieceWidth, pieceHeight));
+
+  const activePiece = activePieceId !== null ? pieces.find(p => p.id === activePieceId) : null;
+  const trayPieces = pieces.filter(p => p.isInTray && !p.isPlaced).sort((a, b) => a.trayIndex - b.trayIndex);
 
   if (!imageLoaded) {
     return (
@@ -413,7 +624,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
             </Badge>
             <Badge variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5">
               <Sparkles className="h-4 w-4" />
-              {correctPieces}/{pieces.length} correct
+              {placedCount}/{pieces.length} placed
             </Badge>
           </div>
         </div>
@@ -437,95 +648,135 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
           </Card>
         )}
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex flex-col xl:flex-row gap-4 items-start">
             <Card
-              ref={containerRef}
-              className="relative w-full flex-shrink-0 overflow-hidden p-0"
-              style={{ 
-                aspectRatio: imageAspectRatio,
-                maxWidth: `${maxCanvasWidth}px`
-              }}
-              data-testid="puzzle-grid"
+              className="relative flex-shrink-0 overflow-visible bg-muted/30 p-4"
+              data-testid="puzzle-board"
             >
               {showHint && (
                 <img
                   src={puzzle.imageUrl}
                   alt="Hint"
-                  className="absolute inset-0 z-10 h-full w-full object-cover opacity-50 pointer-events-none"
+                  className="absolute z-10 opacity-30 pointer-events-none rounded"
+                  style={{
+                    left: pieceWidth * 0.2 + 16,
+                    top: pieceHeight * 0.2 + 16,
+                    width: boardSize.width,
+                    height: boardSize.height,
+                  }}
                   data-testid="hint-overlay"
                 />
               )}
               <div
-                className="grid h-full w-full"
-                style={{
-                  gridTemplateColumns: `repeat(${currentCut.cols}, 1fr)`,
-                  gridTemplateRows: `repeat(${currentCut.rows}, 1fr)`,
+                ref={boardRef}
+                className="relative"
+                style={{ 
+                  width: maxBoardWidth,
+                  aspectRatio: imageAspectRatio,
                 }}
+                data-testid="puzzle-grid"
               >
-                {Array.from({ length: currentCut.rows }).map((_, row) =>
-                  Array.from({ length: currentCut.cols }).map((_, col) => {
-                    const piece = getPieceAtPosition(row, col);
-                    if (!piece) return null;
-                    
-                    const isCorrect = piece.currentRow === piece.correctRow && piece.currentCol === piece.correctCol;
-                    const isDragging = activePieceId === piece.id;
-                    
-                    return (
-                      <DroppableCell
-                        key={`${row}-${col}`}
-                        row={row}
-                        col={col}
-                        isOver={false}
-                      >
-                        <DraggablePiece
-                          piece={piece}
-                          imageUrl={puzzle.imageUrl}
-                          cols={currentCut.cols}
-                          rows={currentCut.rows}
-                          isCorrect={isCorrect}
-                          isComplete={isComplete}
-                          isDragging={isDragging}
-                        />
-                      </DroppableCell>
-                    );
-                  })
-                )}
+                {Array.from({ length: currentCut.rows }).map((_, row) => (
+                  <div key={row} className="flex">
+                    {Array.from({ length: currentCut.cols }).map((_, col) => {
+                      const edges = allEdges[row]?.[col];
+                      if (!edges) return null;
+                      
+                      const placedPiece = pieces.find(p => p.isPlaced && p.currentRow === row && p.currentCol === col);
+                      const isCorrectSlot = activePiece ? (activePiece.correctRow === row && activePiece.correctCol === col) : false;
+                      
+                      return (
+                        <BoardSlot
+                          key={`${row}-${col}`}
+                          row={row}
+                          col={col}
+                          pieceWidth={pieceWidth}
+                          pieceHeight={pieceHeight}
+                          edges={edges}
+                          hasPiece={!!placedPiece}
+                          isCorrectSlot={isCorrectSlot}
+                        >
+                          {placedPiece && (
+                            <PlacedPiece
+                              piece={placedPiece}
+                              imageUrl={puzzle.imageUrl}
+                              cols={currentCut.cols}
+                              rows={currentCut.rows}
+                              edges={edges}
+                              pieceWidth={pieceWidth}
+                              pieceHeight={pieceHeight}
+                            />
+                          )}
+                        </BoardSlot>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </Card>
 
-            <DragOverlay dropAnimation={null}>
-              {activePiece && (
-                <DragOverlayPiece
-                  piece={activePiece}
-                  imageUrl={puzzle.imageUrl}
-                  cols={currentCut.cols}
-                  rows={currentCut.rows}
-                  containerWidth={containerSize.width}
-                  containerHeight={containerSize.height}
-                />
-              )}
-            </DragOverlay>
-          </DndContext>
+            <Card className="flex-1 min-w-[200px] max-w-[400px] p-4 bg-muted/20" data-testid="piece-tray">
+              <div className="text-sm font-medium text-muted-foreground mb-3">
+                Pieces ({trayPieces.length} remaining)
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-[500px] overflow-y-auto">
+                {trayPieces.map(piece => {
+                  const edges = allEdges[piece.correctRow]?.[piece.correctCol];
+                  if (!edges) return null;
+                  
+                  return (
+                    <JigsawPiece
+                      key={piece.id}
+                      piece={piece}
+                      imageUrl={puzzle.imageUrl}
+                      cols={currentCut.cols}
+                      rows={currentCut.rows}
+                      edges={edges}
+                      pieceWidth={pieceWidth}
+                      pieceHeight={pieceHeight}
+                      isComplete={isComplete}
+                      isDragging={activePieceId === piece.id}
+                      scale={trayPieceScale}
+                    />
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
 
-          {showReference && (
-            <Card className="overflow-hidden p-0 lg:w-64 flex-shrink-0">
-              <img
-                src={puzzle.imageUrl}
-                alt="Reference"
-                className="w-full object-cover"
+          <DragOverlay dropAnimation={null}>
+            {activePiece && allEdges[activePiece.correctRow]?.[activePiece.correctCol] && (
+              <DragOverlayPiece
+                piece={activePiece}
+                imageUrl={puzzle.imageUrl}
+                cols={currentCut.cols}
+                rows={currentCut.rows}
+                edges={allEdges[activePiece.correctRow][activePiece.correctCol]}
+                pieceWidth={pieceWidth}
+                pieceHeight={pieceHeight}
               />
-              <div className="p-3 text-center text-sm text-muted-foreground">
-                Reference Image
-              </div>
-            </Card>
-          )}
-        </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+
+        {showReference && (
+          <Card className="overflow-hidden p-0 max-w-xs">
+            <img
+              src={puzzle.imageUrl}
+              alt="Reference"
+              className="w-full object-cover"
+            />
+            <div className="p-3 text-center text-sm text-muted-foreground">
+              Reference Image
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
