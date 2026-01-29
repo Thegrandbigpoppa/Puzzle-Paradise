@@ -641,7 +641,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
               )}
               <div
                 ref={boardRef}
-                className="relative border-2 border-border rounded-lg overflow-hidden bg-muted/20"
+                className="relative border-2 border-border rounded-lg bg-muted/20"
                 style={{ 
                   width: maxBoardWidth,
                   aspectRatio: imageAspectRatio,
