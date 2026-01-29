@@ -24,7 +24,7 @@ interface PuzzleSidebarProps {
   onStartOver: () => void;
   onToggleReference: () => void;
   showReference: boolean;
-  onShowHint: () => void;
+  onToggleHint: () => void;
   showHint: boolean;
 }
 
@@ -39,7 +39,7 @@ export function PuzzleSidebar({
   onStartOver,
   onToggleReference,
   showReference,
-  onShowHint,
+  onToggleHint,
   showHint,
 }: PuzzleSidebarProps) {
   return (
@@ -91,10 +91,10 @@ export function PuzzleSidebar({
         />
         <SidebarButton 
           icon={<Lightbulb className="h-4 w-4" />}
-          label={showHint ? "Hint Active" : "Show Hint"}
-          onClick={onShowHint}
+          label={showHint ? "Hide Hint" : "Show Hint"}
+          onClick={onToggleHint}
           highlight={showHint}
-          testId="button-show-hint"
+          testId="button-toggle-hint"
         />
       </div>
 

@@ -297,7 +297,6 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
       });
       
       setMoves(m => m + 1);
-      setShowHint(false);
       checkCompletion(updatedPieces);
       return updatedPieces;
     });
@@ -382,7 +381,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
         onStartOver={handleStartOver}
         onToggleReference={() => setShowReference(!showReference)}
         showReference={showReference}
-        onShowHint={() => setShowHint(true)}
+        onToggleHint={() => setShowHint(!showHint)}
         showHint={showHint}
       />
 
@@ -493,14 +492,14 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
           </DndContext>
 
           {showReference && (
-            <Card className="overflow-hidden lg:w-64 flex-shrink-0 p-3">
+            <Card className="overflow-hidden p-0 lg:w-64 flex-shrink-0">
               <img
                 src={puzzle.imageUrl}
                 alt="Reference"
-                className="w-full object-cover rounded-md"
+                className="w-full object-cover"
                 style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
               />
-              <div className="pt-2 text-center text-sm text-muted-foreground">
+              <div className="p-3 text-center text-sm text-muted-foreground">
                 Reference Image
               </div>
             </Card>

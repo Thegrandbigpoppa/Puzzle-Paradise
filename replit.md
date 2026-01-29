@@ -49,11 +49,6 @@ MVP complete with:
 - TouchSensor: 100ms delay, 5px tolerance for mobile
 - Visual feedback: dragged piece shows at 105% scale with shadow
 
-### Hint Feature
-- "Show Hint" button reveals the completed puzzle as a semi-transparent background layer
-- Helps players see where pieces should go
-- Hint automatically disappears after the player makes their next move
-
 ## Design System
 - Primary color: Purple (262°)
 - Accent color: Pink/Rose (340°)
