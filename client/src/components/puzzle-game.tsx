@@ -177,6 +177,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
   const [showReference, setShowReference] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 1, height: 1 });
   const [cutSelectorOpen, setCutSelectorOpen] = useState(false);
   const [activePieceId, setActivePieceId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -198,7 +199,10 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
 
   useEffect(() => {
     const img = new window.Image();
-    img.onload = () => setImageLoaded(true);
+    img.onload = () => {
+      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      setImageLoaded(true);
+    };
     img.src = puzzle.imageUrl;
   }, [puzzle.imageUrl]);
 
@@ -348,6 +352,21 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
 
   const activePiece = activePieceId !== null ? pieces.find(p => p.id === activePieceId) : null;
 
+  // Calculate the actual image aspect ratio
+  const imageAspectRatio = imageDimensions.width / imageDimensions.height;
+  
+  // Scale canvas size based on piece count - larger puzzles get bigger canvas
+  // Base: 512px for small puzzles, up to 768px for large ones
+  const getMaxWidth = () => {
+    const pieces = currentCut.pieces;
+    if (pieces <= 25) return 512;
+    if (pieces <= 50) return 576;
+    if (pieces <= 100) return 640;
+    if (pieces <= 150) return 704;
+    return 768; // max-w-3xl equivalent
+  };
+  const maxCanvasWidth = getMaxWidth();
+
   if (!imageLoaded) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -427,8 +446,11 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
           >
             <Card
               ref={containerRef}
-              className="relative w-full max-w-2xl flex-shrink-0 overflow-hidden p-0"
-              style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
+              className="relative w-full flex-shrink-0 overflow-hidden p-0"
+              style={{ 
+                aspectRatio: imageAspectRatio,
+                maxWidth: `${maxCanvasWidth}px`
+              }}
               data-testid="puzzle-grid"
             >
               {showHint && (
@@ -497,7 +519,6 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
                 src={puzzle.imageUrl}
                 alt="Reference"
                 className="w-full object-cover"
-                style={{ aspectRatio: `${currentCut.cols} / ${currentCut.rows}` }}
               />
               <div className="p-3 text-center text-sm text-muted-foreground">
                 Reference Image
