@@ -436,12 +436,12 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
                 <img
                   src={puzzle.imageUrl}
                   alt="Hint"
-                  className="absolute inset-0 h-full w-full object-cover opacity-40 pointer-events-none"
+                  className="absolute inset-0 z-10 h-full w-full object-cover opacity-50 pointer-events-none"
                   data-testid="hint-overlay"
                 />
               )}
               <div
-                className="relative grid h-full w-full"
+                className="grid h-full w-full"
                 style={{
                   gridTemplateColumns: `repeat(${currentCut.cols}, 1fr)`,
                   gridTemplateRows: `repeat(${currentCut.rows}, 1fr)`,
