@@ -191,24 +191,10 @@ function BoardSlot({ row, col, pieceWidth, pieceHeight, edges, hasPiece, isCorre
   const totalWidth = pieceWidth + extraW * 2;
   const totalHeight = pieceHeight + extraH * 2;
   
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: `slot-${row}-${col}`,
     data: { row, col },
   });
-  
-  const path = generatePiecePath(edges, pieceWidth, pieceHeight, tabSize);
-  
-  const getFillColor = () => {
-    if (!isOver) return "rgba(0,0,0,0.05)";
-    if (isCorrectSlot) return "rgba(34, 197, 94, 0.3)";
-    return "rgba(239, 68, 68, 0.2)";
-  };
-  
-  const getStrokeColor = () => {
-    if (!isOver) return "rgba(0,0,0,0.15)";
-    if (isCorrectSlot) return "rgba(34, 197, 94, 0.8)";
-    return "rgba(239, 68, 68, 0.5)";
-  };
 
   return (
     <div
@@ -221,26 +207,6 @@ function BoardSlot({ row, col, pieceWidth, pieceHeight, edges, hasPiece, isCorre
         marginTop: row === 0 ? 0 : -extraH,
       }}
     >
-      {!hasPiece && (
-        <svg 
-          className="absolute pointer-events-none"
-          style={{
-            left: 0,
-            top: 0,
-            width: totalWidth,
-            height: totalHeight,
-          }}
-          viewBox={`${-extraW} ${-extraH} ${totalWidth} ${totalHeight}`}
-        >
-          <path 
-            d={path} 
-            fill={getFillColor()} 
-            stroke={getStrokeColor()} 
-            strokeWidth={isOver && isCorrectSlot ? 2 : 1}
-            strokeDasharray={isOver ? "none" : "4 2"}
-          />
-        </svg>
-      )}
       <div 
         className="absolute"
         style={{
@@ -675,7 +641,7 @@ export function PuzzleGame({ puzzle }: PuzzleGameProps) {
               )}
               <div
                 ref={boardRef}
-                className="relative"
+                className="relative border-2 border-border rounded-lg overflow-hidden bg-muted/20"
                 style={{ 
                   width: maxBoardWidth,
                   aspectRatio: imageAspectRatio,
