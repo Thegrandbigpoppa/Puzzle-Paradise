@@ -33,7 +33,7 @@ export function PuzzleCutsShowcase() {
             className="px-3 py-1.5 text-sm"
           >
             <Puzzle className="h-3 w-3 mr-1.5" />
-            {cut.pieces} {cut.name}
+            {cut.name}
           </Badge>
         ))}
         <Badge variant="outline" className="px-3 py-1.5 text-sm text-muted-foreground">
@@ -42,7 +42,7 @@ export function PuzzleCutsShowcase() {
       </div>
       
       <p className="mt-4 text-sm text-muted-foreground">
-        Choose your perfect challenge level with over {puzzleCutOptions.length} different puzzle cut styles including Classic, ZigZag, Triangles, Crazy, and more!
+        Choose your perfect challenge level with over {puzzleCutOptions.length} different puzzle cut options!
       </p>
     </Card>
   );
