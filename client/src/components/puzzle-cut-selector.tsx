@@ -56,7 +56,7 @@ export function PuzzleCutSelector({
                           isSelected ? "bg-primary" : "bg-muted-foreground/30"
                         }`} />
                         <span className="text-sm font-medium">
-                          {cut.pieces} Piece {cut.name}
+                          {cut.name}
                         </span>
                       </button>
                     );
