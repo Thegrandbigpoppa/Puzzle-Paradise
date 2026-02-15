@@ -126,8 +126,8 @@ const samplePuzzles: Puzzle[] = [
   {
     id: "goat-3",
     categoryId: "goats",
-    name: "Farm Goat",
-    imageUrl: "https://images.unsplash.com/photo-1560781290-7dc94c0f8f4f?w=600&h=600&fit=crop",
+    name: "Baby Goat",
+    imageUrl: "/images/baby-goat.jpg",
     difficulty: "hard",
     gridSize: 5,
   },
