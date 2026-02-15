@@ -1,4 +1,4 @@
-# Puzzle Pals - Animal Jigsaw Puzzle Game
+# The Jig Zone - Animal Jigsaw Puzzle Game
 
 ## Overview
 A fun and engaging jigsaw puzzle website where visitors can choose from various animal categories (dogs, cats, birds, goats, rabbits, fish) and solve interactive jigsaw puzzles.

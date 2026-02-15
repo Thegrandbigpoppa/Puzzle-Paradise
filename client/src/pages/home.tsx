@@ -14,7 +14,7 @@ export default function Home() {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
               <Puzzle className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">Puzzle Pals</span>
+            <span className="text-xl font-bold">The Jig Zone</span>
           </div>
           <ThemeToggle />
         </div>
@@ -39,7 +39,7 @@ export default function Home() {
         </div>
 
         <div className="mt-16">
-          <h2 className="mb-6 text-2xl font-semibold text-center">Why Play Puzzle Pals?</h2>
+          <h2 className="mb-6 text-2xl font-semibold text-center">Why Play The Jig Zone?</h2>
           <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
             <PuzzleCutsShowcase />
             <div className="grid gap-6 sm:grid-cols-2">

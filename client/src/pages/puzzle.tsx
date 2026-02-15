@@ -58,7 +58,7 @@ export default function PuzzlePage() {
             {isLoading ? (
               <Skeleton className="h-6 w-32" />
             ) : (
-              <span className="text-lg font-bold">Puzzle Pals</span>
+              <span className="text-lg font-bold">The Jig Zone</span>
             )}
           </div>
           <ThemeToggle />
